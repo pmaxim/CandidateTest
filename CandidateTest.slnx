@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="task.txt" />
+  </Folder>
+  <Project Path="WebUi/webui.client/webui.client.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="WebUi/WebUi.Server/WebUi.Server.csproj" Id="80ce4de6-3c99-4747-a4db-c1fe3ab7337f" />
+</Solution>
