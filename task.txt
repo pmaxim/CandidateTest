@@ -2,150 +2,234 @@
 
 Нужно реализовать backend-сервис для загрузки справочника (dictionary) из внешнего API и сохранения его в базу данных.
 
+================================================================================
 Исходные данные
+================================================================================
 
-Есть внешний API:
-
-GET https://mts.astridsoft.com/api/v1/dictionary
-
-Доступ:
-
-login: sys_multiplexer
-password: 21QMIp9h))AW
-
-Endpoint возвращает dictionary со справочными данными (providers, sports, tournaments, rounds, periods, market types и др.).
-
-Требования
-
-Проект уже создан:
-
-ASP.NET 10 + Angular (стандартный template Visual Studio)
-
+Проект уже создан: ASP.NET Core (.NET 9) + Angular (стандартный template Visual Studio).
 Реализовать нужно только backend.
 
+Внешний API
+-----------
+Base URL: https://mts.astridsoft.com/api/
+
+Учётные данные:
+  login:    sys_multiplexer
+  password: 21QMIp9h))AW
+
+================================================================================
+Авторизация во внешнем API
+================================================================================
+
+API использует JWT-аутентификацию. Для получения данных необходимо:
+
+1. Получить токен
+
+   POST https://mts.astridsoft.com/api/Account/Authenticate
+   Content-Type: application/json
+
+   Тело запроса:
+   {
+     "login": "sys_multiplexer",
+     "password": "21QMIp9h))AW"
+   }
+
+   Ответ (200 OK):
+   {
+     "token": "eyJhbGciOiJIUzI1NiIs..."
+   }
+
+2. Использовать токен для запроса данных
+
+   GET https://mts.astridsoft.com/api/Dictionary/GetDictionary
+   Authorization: Bearer <token>
+
+   Ответ — JSON-объект с полями: providers, sports, tournaments, rounds,
+   periods, market_groups, market_types.
+
+================================================================================
+Структура ответа Dictionary/GetDictionary
+================================================================================
+
+Все коллекции возвращаются как Dictionary<string, object> (ключ — код/ID).
+Имена полей — в snake_case.
+
+Пример структуры:
+
+{
+  "message_type": "dictionary",
+  "version": "1.0",
+  "generated_at": "2026-03-15T12:00:00",
+  "odds_format": "decimal",
+  "base_currency": "EUR",
+
+  "providers": {
+    "provider_code": {
+      "name": "Provider Name",
+      "trademark": "TM",
+      "api_base_url": "https://...",
+      "provider_type": "premium",
+      "avatar_url_template": "https://...",
+      "team_logo_url_template": "https://...",
+      "available_image_sizes": [32, 64, 128],
+      "sports": ["1", "2"]
+    }
+  },
+
+  "sports": {
+    "1": { "id": "1", "name": "Football" },
+    "2": { "id": "2", "name": "Basketball" }
+  },
+
+  "tournaments": {
+    "100": {
+      "id": "100",
+      "inner_id": "500",
+      "name": "Premier League",
+      "sport_id": "1"
+    }
+  },
+
+  "rounds": {
+    "round_1": {
+      "code": "round_1",
+      "name": "Round 1",
+      "sports": [1, 2]
+    }
+  },
+
+  "periods": {
+    "period_ft": {
+      "code": "period_ft",
+      "name": "Full Time",
+      "sports": [1, 2]
+    }
+  },
+
+  "market_groups": {
+    "main": {
+      "code": "main",
+      "name": "Main Markets",
+      "display_order": 1
+    }
+  },
+
+  "market_types": {
+    "1x2": {
+      "code": "1x2",
+      "name": "1X2",
+      "category": "main",
+      "display_order": 1,
+      "description": "Match result"
+    }
+  }
+}
+
+Обратите внимание:
+- ID спортов и турниров приходят как строки ("1", "100") — их нужно
+  преобразовать в int для хранения в БД.
+- Providers, Rounds, Periods, MarketGroups, MarketTypes идентифицируются
+  по строковому коду (ключ словаря / поле code), а не по числовому ID.
+- Tournaments содержат поле sport_id (FK на Sports) и inner_id.
+
+================================================================================
 Задачи
+================================================================================
+
 1. Получение данных из внешнего API
 
-Реализовать сервис, который:
-
-делает HTTP GET запрос
-
-GET /api/v1/dictionary
-
-к серверу
-
-https://mts.astridsoft.com
-
-использует предоставленные логин и пароль
-
-десериализует полученный JSON
+   Реализовать сервис, который:
+   - выполняет POST-запрос на Account/Authenticate для получения JWT-токена
+   - выполняет GET-запрос на Dictionary/GetDictionary с Bearer-токеном
+   - десериализует полученный JSON
 
 2. Создание базы данных
 
-Создать локальную базу данных MSSQL (файловую).
+   Создать локальную базу данных MSSQL (LocalDB, файловую).
 
-Использовать:
+   Использовать:
+   - Entity Framework Core
+   - Code First
+   - Migrations
 
-Entity Framework Core
-Code First
-Migrations
-
-База должна автоматически создаваться при запуске проекта.
+   База должна автоматически создаваться/мигрироваться при запуске проекта.
 
 3. Сохранение данных
 
-Полученные данные dictionary необходимо сохранить в базу данных.
+   Полученные данные dictionary необходимо сохранить в базу данных.
 
-Минимальный набор таблиц:
+   Минимальный набор таблиц:
+   - Providers
+   - Sports
+   - Tournaments (с FK на Sports)
+   - Rounds
+   - Periods
+   - MarketGroups
+   - MarketTypes
 
-Providers
-
-Sports
-
-Tournaments
-
-Rounds
-
-Periods
-
-MarketGroups
-
-MarketTypes
-
-Структура таблиц должна соответствовать данным, полученным из API.
+   Структура таблиц должна соответствовать данным, полученным из API.
 
 4. Endpoint для импорта
 
-Создать API endpoint:
+   POST /api/dictionary/import
 
-POST /api/dictionary/import
+   Он должен:
+   - вызвать внешний API (аутентификация + получение словаря)
+   - сохранить данные в базу данных
+   - вернуть импортированные данные в ответе
 
-Он должен:
+   Импорт должен быть идемпотентным:
+   повторный запуск не должен создавать дубликаты (upsert-логика).
 
-вызвать внешний API
+5. Endpoints для просмотра данных
 
-получить dictionary
+   GET /api/dictionary/providers
+   GET /api/dictionary/sports
+   GET /api/dictionary/tournaments
 
-сохранить данные в базу данных
-
-Импорт должен быть идемпотентным:
-
-повторный запуск не должен создавать дубликаты.
-
-5. Endpoint для просмотра данных
-
-Создать несколько API методов:
-
-GET /api/dictionary/providers
-GET /api/dictionary/sports
-GET /api/dictionary/tournaments
 6. Использование Scalar UI
 
-Для тестирования API необходимо использовать Scalar API Reference.
+   Для тестирования API необходимо подключить Scalar API Reference.
 
-В Program.cs должно быть добавлено:
+   NuGet-пакет: Scalar.AspNetCore
 
-app.MapScalarApiReference();
+   В Program.cs добавить:
+     app.MapOpenApi();
+     app.MapScalarApiReference();
 
-После запуска проекта API должно быть доступно через UI:
+   После запуска проекта API должно быть доступно через UI:
+     https://localhost:xxxx/scalar/v1
 
-https://localhost:xxxx/scalar/v1
+   Через этот интерфейс должно быть возможно:
+   - вызвать POST /api/dictionary/import
+   - получить данные GET /api/dictionary/providers и другие
 
-Через этот интерфейс должно быть возможно:
-
-вызвать /api/dictionary/import
-
-получить данные /api/dictionary/providers и другие.
-
+================================================================================
 Технические требования
+================================================================================
 
-Использовать:
+- ASP.NET Core (.NET 9)
+- EF Core Code First + Migrations
+- HttpClient / HttpClientFactory (зарегистрированный через DI)
+- Dependency Injection
+- Clean architecture: Controller → Service → Repository
+- Настройки (URL, логин, пароль) вынести в appsettings.json
 
-ASP.NET Core
-
-EF Core Code First
-
-HttpClient / HttpClientFactory
-
-Dependency Injection
-
-Clean architecture (Controller → Service → Repository)
-
+================================================================================
 Что нужно сдать
+================================================================================
 
-Кандидат должен предоставить:
+- Исходный код проекта
+- Migrations
+- README с инструкцией запуска
 
-исходный код проекта
-
-migrations
-
-README с инструкцией запуска
-
+================================================================================
 Что будет оцениваться
+================================================================================
 
-1️⃣ Архитектура проекта
-2️⃣ Работа с EF Core
-3️⃣ Работа с внешним API
-4️⃣ Чистота и читаемость кода
-5️⃣ Отсутствие дубликатов при повторном импорте
-6️⃣ Корректная обработка ошибок
+1. Архитектура проекта (разделение на слои)
+2. Работа с EF Core (Code First, миграции, upsert)
+3. Работа с внешним API (аутентификация, десериализация)
+4. Чистота и читаемость кода
+5. Отсутствие дубликатов при повторном импорте
+6. Корректная обработка ошибок
