@@ -1,0 +1,151 @@
+Тестовое задание Backend Developer (.NET)
+
+Нужно реализовать backend-сервис для загрузки справочника (dictionary) из внешнего API и сохранения его в базу данных.
+
+Исходные данные
+
+Есть внешний API:
+
+GET https://mts.astridsoft.com/api/v1/dictionary
+
+Доступ:
+
+login: sys_multiplexer
+password: 21QMIp9h))AW
+
+Endpoint возвращает dictionary со справочными данными (providers, sports, tournaments, rounds, periods, market types и др.).
+
+Требования
+
+Проект уже создан:
+
+ASP.NET 10 + Angular (стандартный template Visual Studio)
+
+Реализовать нужно только backend.
+
+Задачи
+1. Получение данных из внешнего API
+
+Реализовать сервис, который:
+
+делает HTTP GET запрос
+
+GET /api/v1/dictionary
+
+к серверу
+
+https://mts.astridsoft.com
+
+использует предоставленные логин и пароль
+
+десериализует полученный JSON
+
+2. Создание базы данных
+
+Создать локальную базу данных MSSQL (файловую).
+
+Использовать:
+
+Entity Framework Core
+Code First
+Migrations
+
+База должна автоматически создаваться при запуске проекта.
+
+3. Сохранение данных
+
+Полученные данные dictionary необходимо сохранить в базу данных.
+
+Минимальный набор таблиц:
+
+Providers
+
+Sports
+
+Tournaments
+
+Rounds
+
+Periods
+
+MarketGroups
+
+MarketTypes
+
+Структура таблиц должна соответствовать данным, полученным из API.
+
+4. Endpoint для импорта
+
+Создать API endpoint:
+
+POST /api/dictionary/import
+
+Он должен:
+
+вызвать внешний API
+
+получить dictionary
+
+сохранить данные в базу данных
+
+Импорт должен быть идемпотентным:
+
+повторный запуск не должен создавать дубликаты.
+
+5. Endpoint для просмотра данных
+
+Создать несколько API методов:
+
+GET /api/dictionary/providers
+GET /api/dictionary/sports
+GET /api/dictionary/tournaments
+6. Использование Scalar UI
+
+Для тестирования API необходимо использовать Scalar API Reference.
+
+В Program.cs должно быть добавлено:
+
+app.MapScalarApiReference();
+
+После запуска проекта API должно быть доступно через UI:
+
+https://localhost:xxxx/scalar/v1
+
+Через этот интерфейс должно быть возможно:
+
+вызвать /api/dictionary/import
+
+получить данные /api/dictionary/providers и другие.
+
+Технические требования
+
+Использовать:
+
+ASP.NET Core
+
+EF Core Code First
+
+HttpClient / HttpClientFactory
+
+Dependency Injection
+
+Clean architecture (Controller → Service → Repository)
+
+Что нужно сдать
+
+Кандидат должен предоставить:
+
+исходный код проекта
+
+migrations
+
+README с инструкцией запуска
+
+Что будет оцениваться
+
+1️⃣ Архитектура проекта
+2️⃣ Работа с EF Core
+3️⃣ Работа с внешним API
+4️⃣ Чистота и читаемость кода
+5️⃣ Отсутствие дубликатов при повторном импорте
+6️⃣ Корректная обработка ошибок
