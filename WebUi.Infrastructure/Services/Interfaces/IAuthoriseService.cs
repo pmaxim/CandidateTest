@@ -2,5 +2,5 @@
 
 public interface IAuthoriseService
 {
-    Task<string> Authorise();
+    Task<string> AuthoriseAsync();
 }
