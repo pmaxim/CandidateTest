@@ -7,8 +7,18 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="MediatR" Version="14.1.0"/>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.5"/>
         <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.5"/>
+        <PackageReference Include="Microsoft.VisualStudio.Threading" Version="17.14.15"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\WebUi.Database\WebUi.Database.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="Exceptions\"/>
     </ItemGroup>
 
 </Project>

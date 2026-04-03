@@ -1,43 +1,55 @@
 ﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using MediatR;
+using Microsoft.VisualStudio.Threading;
+using WebUi.Infrastructure.MediatorRequests;
+using WebUi.Infrastructure.Models.AstridsoftDtos;
 using WebUi.Infrastructure.Services.Interfaces;
 using WebUi.Infrastructure.Utils;
 
 namespace WebUi.Infrastructure.Services;
 
-public sealed class AstridsoftDataCollector(
-    string jwToken,
-    Uri apiEndpoint,
-    HttpClient client) : IDataCollector
+public sealed class AstridsoftDataCollector : IDataCollector
 {
-    private readonly Uri _apiEndpoint = apiEndpoint ?? throw new ArgumentNullException(nameof(apiEndpoint));
+    private static readonly ApiEndpointUriRequest ApiEndpointUriRequest = new();
+    private readonly AsyncLazy<HttpRequest> _httpRequestMessageTemplate;
+    private readonly IMediator _mediator;
 
-    private readonly HttpClient _client = client ?? throw new ArgumentNullException(nameof(client));
-
-    private readonly string _jwToken = string.IsNullOrWhiteSpace(jwToken)
-        ? throw new ArgumentNullException(nameof(jwToken))
-        : jwToken;
-
-    public async Task<Dictionary<string, object>> CollectDataAsync()
+    public AstridsoftDataCollector(IMediator mediator, JoinableTaskContext joinableTaskContext)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, _apiEndpoint);
-        // TODO Is it correct scheme
-        request.Headers.Authorization = new AuthenticationHeaderValue(AuthStatics.BearerToken, _jwToken);
+        ArgumentNullException.ThrowIfNull(mediator);
+        ArgumentNullException.ThrowIfNull(joinableTaskContext);
 
-        var response = await _client.SendAsync(request);
+        _mediator = mediator;
+        _httpRequestMessageTemplate =
+            new AsyncLazy<HttpRequest>(CreateHttpRequestFabric(_mediator), joinableTaskContext.Factory);
+    }
 
-        if (!response.IsSuccessStatusCode)
+    public async Task<AstridsoftRootDto> CollectDataAsync()
+    {
+        var response = await _mediator.Send(await _httpRequestMessageTemplate.GetValueAsync());
+
+        response.EnsureSuccessStatusCode();
+
+        var content = await response.Content.ReadFromJsonAsync<AstridsoftRootDto>();
+
+        return content ?? throw new InvalidOperationException();
+    }
+
+    private static Func<Task<HttpRequest>> CreateHttpRequestFabric(ISender mediator)
+    {
+        return async () =>
         {
-            throw new HttpRequestException();
-        }
+            var request = new HttpRequestMessage(HttpMethod.Get, await mediator.Send(ApiEndpointUriRequest));
 
-        var content = await response.Content.ReadFromJsonAsync<Dictionary<string, object>>();
+            request.Headers.Authorization = new AuthenticationHeaderValue(
+                AuthStatics.BearerToken,
+                await mediator.Send(new AuthoriseRequest()));
 
-        if (content is null)
-        {
-            throw new InvalidOperationException();
-        }
-
-        return content;
+            return new HttpRequest
+            {
+                RequestMessage = request
+            };
+        };
     }
 }

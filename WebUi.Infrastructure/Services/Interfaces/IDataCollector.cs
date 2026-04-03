@@ -1,6 +1,8 @@
-﻿namespace WebUi.Infrastructure.Services.Interfaces;
+﻿using WebUi.Infrastructure.Models.AstridsoftDtos;
+
+namespace WebUi.Infrastructure.Services.Interfaces;
 
 public interface IDataCollector
 {
-    Task<Dictionary<string, object>> CollectDataAsync();
+    Task<AstridsoftRootDto> CollectDataAsync();
 }

@@ -1,60 +1,56 @@
 ﻿using System.Net.Http.Json;
+using System.Runtime.Serialization;
 using System.Text.Json;
-using WebUi.Infrastructure.Models;
+using MediatR;
+using Microsoft.VisualStudio.Threading;
+using WebUi.Infrastructure.MediatorRequests;
 using WebUi.Infrastructure.Services.Interfaces;
 
 namespace WebUi.Infrastructure.Services;
 
-public sealed class AuthoriseService(
-    HttpClient httpClient,
-    AstridsoftOptions settings) : IAuthoriseService, IDisposable
+public sealed class AuthoriseService : IAuthoriseService
 {
     private const string TokenSection = "token";
+    private const string TokenSectionNotFoundExceptionMessage = "The token section not found in the response";
+    private readonly AsyncLazy<HttpRequest> _httpRequest;
 
-    private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-    private readonly AstridsoftOptions _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-    private bool _disposed;
+    private readonly IMediator _mediator;
 
-    public async Task<string> AuthoriseAsync()
+    public AuthoriseService(IMediator mediator,
+        JoinableTaskContext joinableTaskContext)
     {
-        var response = await _httpClient.PostAsync(_settings.AuthoriseEndpoint,
-            JsonContent.Create(_settings.UserAuth));
+        ArgumentNullException.ThrowIfNull(mediator);
+        ArgumentNullException.ThrowIfNull(joinableTaskContext);
 
-        if (!response.IsSuccessStatusCode)
-        {
-            // TODO Exception should be more specific
-            throw new InvalidOperationException();
-        }
+        _mediator = mediator;
+        _httpRequest = new AsyncLazy<HttpRequest>(CreateHttpRequestFabric(mediator), joinableTaskContext.Factory);
+    }
+
+    public async Task<string> AuthoriseAndTakeTokenAsync()
+    {
+        var response = await _mediator.Send(await _httpRequest.GetValueAsync());
+
+        response.EnsureSuccessStatusCode();
 
         var jsonDoc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
-        // TODO Exception should be more specific
-        return jsonDoc.RootElement.GetProperty(TokenSection).GetString() ?? throw new InvalidOperationException();
+
+        return jsonDoc.RootElement.GetProperty(TokenSection).GetString() ??
+               throw new SerializationException(TokenSectionNotFoundExceptionMessage);
     }
 
-    /// <summary>Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.</summary>
-    public void Dispose()
+    private static Func<Task<HttpRequest>> CreateHttpRequestFabric(ISender mediator)
     {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    private void Dispose(bool disposing)
-    {
-        if (_disposed)
+        return async () =>
         {
-            return;
-        }
+            var settings = await mediator.Send(new AstridsoftOptionsRequest());
 
-        if (disposing)
-        {
-            _httpClient.Dispose();
-        }
-
-        _disposed = true;
-    }
-
-    ~AuthoriseService()
-    {
-        Dispose(false);
+            return new HttpRequest
+            {
+                RequestMessage = new HttpRequestMessage(HttpMethod.Post, settings.AuthoriseEndpoint)
+                {
+                    Content = JsonContent.Create(settings.UserAuth)
+                }
+            };
+        };
     }
 }
