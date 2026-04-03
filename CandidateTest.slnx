@@ -2,6 +2,7 @@
   <Folder Name="/Solution Items/">
     <File Path="task.txt" />
   </Folder>
+  <Project Path="WebUi.Core/WebUi.Core.csproj"/>
   <Project Path="WebUi.Infrastructure.Tests/WebUi.Infrastructure.Tests.csproj"/>
   <Project Path="WebUi.Infrastructure/WebUi.Infrastructure.csproj"/>
   <Project Path="WebUi/webui.client/webui.client.esproj">
