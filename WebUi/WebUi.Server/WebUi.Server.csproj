@@ -7,6 +7,7 @@
     <SpaRoot>..\webui.client</SpaRoot>
     <SpaProxyLaunchCommand>npm start</SpaProxyLaunchCommand>
     <SpaProxyServerUrl>https://localhost:12691</SpaProxyServerUrl>
+    <UserSecretsId>de9c1278-386c-4c53-b1e3-7236f2a51b1d</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\WebUi.Infrastructure\WebUi.Infrastructure.csproj"/>
     <ProjectReference Include="..\webui.client\webui.client.esproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
